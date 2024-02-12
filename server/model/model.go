@@ -35,7 +35,7 @@ type Transaction struct {
 }
 
 type Reader struct {
-	ReaderID     int    `json:"rid"`
-	ReaderName   string `json:"rname"`
-	ReaderWallet int    `json:"wallet"`
+	Rid    int    `json:"rid"`
+	Rname  string `json:"rname"`
+	Wallet int    `json:"wallet"`
 }

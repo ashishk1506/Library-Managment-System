@@ -1,14 +1,15 @@
 package middlewares
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"lms/model"
 	"net/http"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gin-gonic/gin"
 )
 
-var JwtKey = []byte("your-secret-key")
+var JwtKey = []byte("ashish")
 
 func AuthMiddleware(c *gin.Context) {
 	tokenString := c.GetHeader("Authorization")
@@ -32,6 +33,5 @@ func AuthMiddleware(c *gin.Context) {
 		c.Abort()
 		return
 	}
-
 	c.Next()
 }

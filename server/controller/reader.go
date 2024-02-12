@@ -380,7 +380,7 @@ func GetBorrowedBooks(c *gin.Context) {
 func MakePayment(c *gin.Context) {
 
 	o := orm.NewOrm()
-	//bid := c.Param("id")
+	bid := c.Param("id")
 	//ID TID PAYEDAMOUNT -> SELECT * FROM transaction LEFT JOIN payment ON transaction.tid = payment.tid
 	//WHERE readrerid=? AND returndate IS NOT NULL
 
@@ -397,14 +397,59 @@ func MakePayment(c *gin.Context) {
 		return
 	}
 	//CHECK IF PAYMENT IS DUE
-	errs := o.Raw("SELECT COUNT(*) FROM transaction JOIN payment ON transaction.tid = payment.transid WHERE payment.transid IS NULL", ReaderID).QueryRow(&walletBalance)
-	if errs != nil {
+	var amount []int
+	var txid []int
+
+	_, errs := o.Raw("SELECT tid,amount FROM transaction LEFT JOIN payment ON transaction.tid = payment.transid WHERE payment.transid IS NULL AND readerid=? AND bookid=?", ReaderID, bid).QueryRows(&txid, &amount)
+	if errs != nil || len(amount) == 0 {
 		c.IndentedJSON(http.StatusNotFound, gin.H{
 			"message": "No dues",
 		})
 		return
 	}
+
+	totalamt := 0
+	for _, y := range amount {
+		totalamt += y
+	}
+
+	if totalamt > walletBalance {
+		c.IndentedJSON(http.StatusOK, gin.H{
+			"message": "insuffiecient balance",
+		})
+		return
+	}
 	//MAKE PAYMENT
+	o.Raw("SET autocommit=0").Exec()
+	o.Raw("BEGIN TRANSACTION").Exec()
+
+	for _, y := range txid {
+		_, err = o.Raw("INSERT INTO payment(transid) VALUES(?)  ", y).Exec()
+		if errs != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{
+				"message": "internal server error",
+			})
+			o.Raw("ROLLBACK").Exec()
+			return
+		}
+	}
+
+	//update wallet.
+	_, err = o.Raw("UPDATE reader SET wallet=? WHERE rid=?", walletBalance-totalamt, ReaderID).Exec()
+	if errs != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{
+			"message": "internal server error",
+		})
+		o.Raw("ROLLBACK").Exec()
+		return
+	}
+	o.Raw("COMMIT").Exec()
+	o.Raw("END TRANSACTION").Exec()
+	c.IndentedJSON(http.StatusOK, gin.H{
+		"message":           "Payment success",
+		"Balance Reaminign": walletBalance - totalamt,
+	})
+	return
 
 }
 

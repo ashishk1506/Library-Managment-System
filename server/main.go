@@ -4,7 +4,6 @@ import (
 	controller "lms/controller"
 	"lms/db"
 	"lms/middlewares"
-	model2 "lms/model"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -29,7 +28,6 @@ func main() {
 	//UPDATE transaction SET return date = timestamp
 
 	db.DB()
-	//model2.ConnectDataBase()
 	router := gin.Default()
 	//router.Use(middlewares.JwtAuthMiddleware())
 
@@ -54,20 +52,12 @@ func main() {
 	protected := router.Group("/admin")
 	protected.Use(middlewares.AuthMiddleware)
 	protected.POST("/add", controller.AddBook)
-	protected.GET("/delete/:id", controller.DeleteBook)
-	protected.GET("/update/:id", controller.UpdateBook)
+	protected.DELETE("/delete/:id", controller.DeleteBook)
+	protected.PUT("/update/:id", controller.UpdateBook)
 	protected.GET("/view-readers", controller.ViewReaders)
-
-	router.GET("/reader/register", registerReader)
 
 	router.Run(":8080")
 
-}
-
-func registerReader(c *gin.Context) {
-	var newBook model2.Book
-	newBook.Title = c.PostForm("name")
-	//o := orm.NewOrm()
 }
 
 // HELPER
